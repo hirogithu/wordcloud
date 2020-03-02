@@ -6,19 +6,23 @@ from janome.tokenizer import Tokenizer
 
 import request_html
 
-def split_line(line):
+def split_line(line, black_list):
     text = ''
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(line)
     for token in tokens:
         parts = token.part_of_speech.split(',')
         if (parts[0] == '名詞'):
-            text = text + ' ' + token.surface
+            if token.surface in black_list:
+                pass
+            else:
+                text = text + ' ' + token.surface
     return text
 
 def main(args):
+    black_list = ["とき", "それ", "もの", "よう", "こと", "ため"]
     line = request_html.main(args)
-    text = split_line(line)
+    text = split_line(line, black_list)
 
     wordcloud = WordCloud(background_color="white",
         font_path=r"C:\WINDOWS\Fonts\UDDigiKyokashoN-R.ttc",
