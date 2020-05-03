@@ -1,1 +1,1 @@
-BLACK_LIST = ["paper", "title", "abst", "Abstract"]
+BLACK_LIST = ["paper", "title", "abst", "Abstract", "learning", "neural", "network", "model", "deep"]
