@@ -5,7 +5,7 @@ import config
 
 def exclude_black_list(text):
     for word in config.BLACK_LIST:
-        text.replace(word, "")
+        text = text.replace(word, "")
     return text
 
 def main(args):
@@ -14,7 +14,7 @@ def main(args):
         text = f.read()
         text = exclude_black_list(text)
 
-    Cloudia(text).save(fig_path=args.save_name)
+    Cloudia(text).save(fig_path=args.save_name, dark_theme=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
