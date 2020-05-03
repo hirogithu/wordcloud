@@ -2,57 +2,93 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-occupation_class_ = {"soft":"rs", "hard":"rh", "design":"d", "sound":"s", "promotion":"k", "office":"j"}
+class Soup(object):
+    def __init__(self, target_url):
+        self.target_url = target_url
 
-def request_get_html_list(occupation):
-    # スクレイピング対象の URL にリクエストを送り HTML を取得する
-    res = requests.get('https://www.nintendo.co.jp/jobs/keyword/index.html')
+        # スクレイピング対象の URL にリクエストを送り HTML を取得する
+        res = requests.get(self.target_url)
 
-    # レスポンスの HTML から BeautifulSoup オブジェクトを作る
-    soup = BeautifulSoup(res.content, 'html.parser')
+        # レスポンスの HTML から BeautifulSoup オブジェクトを作る
+        self.soup = BeautifulSoup(res.content, 'html.parser')
 
-    icon_part = soup.find_all('ul', class_="keyword_list clearfix")
-    for ul_tag in icon_part:
+    def get_titles(self):
+        titles = []
+        paper_titles = self.soup.find_all('h3', class_='gs_rt')
+        for i, v in enumerate(paper_titles):
+            titles.append(v.get_text())
+            #print(i, titles[i])
+        return titles
 
-        links = [li.find('a').get('href') for li in ul_tag.find_all('li', class_="cat_" + occupation_class_[occupation])]
-        print(links, len(links))
-        break
+    def get_quoted_link(self):
+        links = []
+        paper_links = self.soup.find_all('h3', class_='gs_rt')
+        for i, v in enumerate(paper_links):
+            links.append(v.a.get('href'))
+            #print(i, v.a.get('href'))
+        return links, paper_links
 
-#    links = [url.get('href') for url in soup.find_all('a')]
-#    print(links, len(links))
-    return links
+    def get_part_of_abst(self):
+        part_of_abst = []
+        paper_abst = self.soup.find_all('div', class_='gs_rs')
+        for i, v in enumerate(paper_abst):
+            part_of_abst.append(v.get_text())
+            #print(i, v.get_text())
+        return part_of_abst
 
-def request_get_text(link):
-    # スクレイピング対象の URL にリクエストを送り HTML を取得する
-    res = requests.get('https://www.nintendo.co.jp/jobs/keyword/'+ link)
+    def get_all_abst(self):
+        abst_txt = ""
+        _, paper_links = self.get_quoted_link()
+        titles = self.get_titles()
 
-    # レスポンスの HTML から BeautifulSoup オブジェクトを作る
-    soup = BeautifulSoup(res.content, 'html.parser')
+        for i, v in enumerate(paper_links):
+            link = v.a.get('href')
+            res_i = requests.get(link)
+            soup_i = BeautifulSoup(res_i.content, 'html.parser')
+            absts = self.get_absts(soup_i)
 
-    jdc_soup = soup.find_all("div", class_="jdc_txt")
+            for abst in absts:
+                txt = abst.get_text()
+                abst_txt += "\n<paper>\n<title>" + titles[i] + "</title>"
+                abst_txt += "\n<abst>" + txt + "</abst>\n</paper>\n"
+                #print(txt[:20])
 
-    text_page = ""
+        return abst_txt
 
-    for jdc_soup_i in jdc_soup:
+    @staticmethod
+    def get_absts(soup_i):
+        abst_re = re.compile('abstract*')
+        # thecvf
+        absts = soup_i.find_all(id=abst_re)
+        if len(absts) > 0:
+            return absts
+        # nips, acm, arxiv
+        absts = soup_i.find_all(class_=abst_re)
+        return absts
 
-        jdc_soup_i.extract()
+def request_get_abst_list(target_url=""):
 
-        #print(jdc_soup_i.get_text())
+    soup_A = Soup(target_url)
 
-        text_page += jdc_soup_i.get_text()
+    # show title
+    #print(soup_A.get_titles())
 
-    return text_page
+    # show paper link, link_html
+    #print(soup_A.get_quoted_link())
 
-def main(args):
+    # show abst
+    #print(soup_A.get_part_of_abst())
 
-    links = request_get_html_list(args.o)
+    # show all abst
+    abst_txt = soup_A.get_all_abst()
 
-    text = ""
+    return abst_txt
 
-    for link in links:
+if __name__ == "__main__":
 
-        if len(link) == 7:
-            text += request_get_text(link)
-
-    return text
-
+    target_url = 'https://scholar.google.com/scholar?cites=5469943753756181884&as_sdt=2005&sciodt=0,5&hl=ja'
+    txt = request_get_abst_list(target_url)
+    print(txt)
+    for i in range(10, 30, 10):
+        txt = request_get_abst_list(target_url+'&start='+str(i))
+        print(txt)
