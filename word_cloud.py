@@ -1,42 +1,24 @@
 import argparse
 
-from wordcloud import WordCloud
+from cloudia import Cloudia
+import config
 
-from janome.tokenizer import Tokenizer
-
-import request_html
-
-def split_line(line, black_list):
-    text = ''
-    tokenizer = Tokenizer()
-    tokens = tokenizer.tokenize(line)
-    for token in tokens:
-        parts = token.part_of_speech.split(',')
-        if (parts[0] == '名詞'):
-            if token.surface in black_list:
-                pass
-            else:
-                text = text + ' ' + token.surface
+def exclude_black_list(text):
+    for word in config.BLACK_LIST:
+        text.replace(word, "")
     return text
 
 def main(args):
-    black_list = ["とき", "それ", "もの", "よう", "こと", "ため"]
-    line = request_html.main(args)
-    text = split_line(line, black_list)
 
-    wordcloud = WordCloud(background_color="white",
-        font_path=r"C:\WINDOWS\Fonts\UDDigiKyokashoN-R.ttc",
-        width=800,height=600).generate(text)
+    with open(args.f, "r", encoding="utf-8") as f:
+        text = f.read()
+        text = exclude_black_list(text)
 
-    wordcloud.to_file("./wordcloud_"+args.o+".png")
+    Cloudia(text).save(fig_path=args.save_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", default="soft", help="set occupation ")
+    parser.add_argument("-f", default="./abst.html", help="set file.")
+    parser.add_argument("--save_name", default="./cloudia_abst.png", help="set file save name.")
     args = parser.parse_args()
-#    main(args)
-
-    occupation_class_ = {"soft":"rs", "hard":"rh", "design":"d", "sound":"s", "promotion":"k", "office":"j"}
-    for occupation in occupation_class_.keys():
-        args.o = occupation
-        main(args)
+    main(args)
